@@ -123,4 +123,51 @@ class AttendanceController extends Controller
     }
 
 
+    public function report($employee_id)
+    {
+        $startDate = now()->startOfMonth()->toDateString(); // First day of current month
+        $endDate = now()->endOfMonth()->toDateString();     // Last day of current month
+        $shiftStart = Carbon::createFromTimeString('09:00:00'); // Define shift start time
+
+        $dates = collect();
+        for ($date = Carbon::parse($startDate); $date->lte($endDate); $date->addDay()) {
+            $dates->push($date->toDateString());
+        }
+
+        $records = Attendance::where('employee_id', $employee_id)
+            ->whereBetween('timestamp', [$startDate, $endDate])
+            ->orderBy('timestamp')
+            ->get()
+            ->groupBy(fn($item) => Carbon::parse($item->timestamp)->toDateString());
+
+        $report = [];
+
+        foreach ($dates as $date) {
+            if (isset($records[$date])) {
+                $daily = $records[$date];
+                $inTime = Carbon::parse($daily->min('timestamp'))->format('H:i');
+                $outTime = Carbon::parse($daily->max('timestamp'))->format('H:i');
+                $isLate = Carbon::parse($inTime)->gt($shiftStart) ? 'Yes' : 'No';
+
+                $report[] = [
+                    'date' => $date,
+                    'in_time' => Carbon::parse($inTime)->format('h:i A'),
+                    'out_time' => Carbon::parse($outTime)->format('h:i A'),
+                    'late' => $isLate,
+                    'status' => 'Present',
+                ];
+            } else {
+                $report[] = [
+                    'date' => $date,
+                    'in_time' => null,
+                    'out_time' => null,
+                    'late' => null,
+                    'status' => 'Absent',
+                ];
+            }
+        }
+
+        return response()->json($report);
+    }
+
 }

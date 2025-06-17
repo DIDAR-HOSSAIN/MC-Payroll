@@ -54,7 +54,9 @@ Route::resource('donors', DonorMemberController::class);
 // Route::resource('attendance', AttendanceController::class);
 
 Route::get('/attendance/sync', [AttendanceController::class, 'sync']);
-// Route::get('/attendance', [AttendanceController::class, 'index']);
+Route::get('/attendance/report/{employee_id}', [AttendanceController::class, 'report']);
+
+
 
 
 
